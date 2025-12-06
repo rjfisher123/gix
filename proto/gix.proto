@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package gix.v1;
+
+// GIX Network Protocol v0.2.0
+// This file defines the gRPC services and messages for the Global Intelligence Exchange
+
+// ============================================================================
+// Common Types
+// ============================================================================
+
+// Job identifier (16 bytes)
+message JobId {
+    bytes id = 1;
+}
+
+// Lane identifier (0-255)
+message LaneId {
+    uint32 id = 1;
+}
+
+// SLP identifier
+message SlpId {
+    string id = 1;
+}
+
+// Precision levels
+enum PrecisionLevel {
+    PRECISION_LEVEL_UNSPECIFIED = 0;
+    PRECISION_LEVEL_BF16 = 1;
+    PRECISION_LEVEL_FP8 = 2;
+    PRECISION_LEVEL_E5M2 = 3;
+    PRECISION_LEVEL_INT8 = 4;
+}
+
+// Execution status
+enum ExecutionStatus {
+    EXECUTION_STATUS_UNSPECIFIED = 0;
+    EXECUTION_STATUS_COMPLETED = 1;
+    EXECUTION_STATUS_FAILED = 2;
+    EXECUTION_STATUS_REJECTED = 3;
+}
+
+// ============================================================================
+// Router Service (AJR)
+// ============================================================================
+
+service RouterService {
+    // Route an envelope through the anonymized job routing system
+    rpc RouteEnvelope(RouteEnvelopeRequest) returns (RouteEnvelopeResponse);
+    
+    // Get router statistics
+    rpc GetRouterStats(GetRouterStatsRequest) returns (GetRouterStatsResponse);
+}
+
+message RouteEnvelopeRequest {
+    bytes envelope = 1; // Serialized GXF envelope (JSON)
+}
+
+message RouteEnvelopeResponse {
+    LaneId lane_id = 1;
+    bool success = 2;
+    string error = 3;
+}
+
+message GetRouterStatsRequest {}
+
+message GetRouterStatsResponse {
+    uint64 total_routed = 1;
+    map<uint32, uint64> lane_stats = 2; // lane_id -> count
+}
+
+// ============================================================================
+// Auction Service (GCAM)
+// ============================================================================
+
+service AuctionService {
+    // Run an auction for a job
+    rpc RunAuction(RunAuctionRequest) returns (RunAuctionResponse);
+    
+    // Get auction statistics
+    rpc GetAuctionStats(GetAuctionStatsRequest) returns (GetAuctionStatsResponse);
+}
+
+message RunAuctionRequest {
+    bytes job = 1; // Serialized GXF job (JSON)
+    uint32 priority = 2;
+}
+
+message RunAuctionResponse {
+    JobId job_id = 1;
+    SlpId slp_id = 2;
+    LaneId lane_id = 3;
+    uint64 price = 4;
+    repeated string route = 5;
+    bool success = 6;
+    string error = 7;
+}
+
+message GetAuctionStatsRequest {}
+
+message GetAuctionStatsResponse {
+    uint64 total_auctions = 1;
+    uint64 total_matches = 2;
+    uint64 total_volume = 3;
+    map<string, uint64> matches_by_precision = 4;
+    map<uint32, uint64> matches_by_lane = 5;
+}
+
+// ============================================================================
+// Execution Service (GSEE)
+// ============================================================================
+
+service ExecutionService {
+    // Execute a job in the secure execution envelope
+    rpc ExecuteJob(ExecuteJobRequest) returns (ExecuteJobResponse);
+    
+    // Get runtime statistics
+    rpc GetRuntimeStats(GetRuntimeStatsRequest) returns (GetRuntimeStatsResponse);
+}
+
+message ExecuteJobRequest {
+    bytes envelope = 1; // Serialized GXF envelope (JSON)
+}
+
+message ExecuteJobResponse {
+    JobId job_id = 1;
+    ExecutionStatus status = 2;
+    uint64 duration_ms = 3;
+    bytes output_hash = 4;
+    bool success = 5;
+    string error = 6;
+}
+
+message GetRuntimeStatsRequest {}
+
+message GetRuntimeStatsResponse {
+    uint64 total_executed = 1;
+    uint64 total_completed = 2;
+    uint64 total_failed = 3;
+    uint64 total_rejected = 4;
+    map<string, uint64> jobs_by_precision = 5;
+}

@@ -1,0 +1,60 @@
+# Dockerfile for GCAM Auction Service
+#
+# This builds only the auction service with persistent storage support
+
+FROM rust:1.75-bookworm as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    protobuf-compiler \
+    llvm \
+    clang \
+    libclang-dev \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY services/gcam-node ./services/gcam-node
+COPY proto ./proto
+
+# Build only the auction service
+RUN cargo build --release -p gcam-node
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user and data directory
+RUN useradd -m -u 1000 gix && \
+    mkdir -p /data/gcam_db && \
+    chown -R gix:gix /data
+
+USER gix
+WORKDIR /home/gix
+
+# Copy binary
+COPY --from=builder --chown=gix:gix /app/target/release/gcam-node /usr/local/bin/gcam-node
+
+EXPOSE 50052
+EXPOSE 9002
+
+# Volume for persistent database
+VOLUME ["/data"]
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD timeout 2 bash -c '</dev/tcp/localhost/50052' || exit 1
+
+# Set data directory environment variable
+ENV GIX_DATA_DIR=/data
+
+CMD ["gcam-node"]
+

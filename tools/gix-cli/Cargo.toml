@@ -1,0 +1,28 @@
+[package]
+name = "gix-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "gix"
+path = "src/main.rs"
+
+[dependencies]
+gix-common = { path = "../../crates/gix-common" }
+gix-crypto = { path = "../../crates/gix-crypto" }
+gix-gxf = { path = "../../crates/gix-gxf" }
+gix-proto = { path = "../../crates/gix-proto" }
+
+clap = { version = "4.4", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+tonic = "0.10"
+prost = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+anyhow = "1.0"
+colored = "2.1"
+dirs = "5.0"
+hex = "0.4"

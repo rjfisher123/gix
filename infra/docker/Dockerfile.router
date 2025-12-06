@@ -1,0 +1,52 @@
+# Dockerfile for AJR Router Service
+#
+# This builds only the router service from the workspace
+
+FROM rust:1.75-bookworm as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    protobuf-compiler \
+    llvm \
+    clang \
+    libclang-dev \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY services/ajr-router ./services/ajr-router
+COPY proto ./proto
+
+# Build only the router
+RUN cargo build --release -p ajr-router
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 gix
+
+USER gix
+WORKDIR /home/gix
+
+# Copy binary
+COPY --from=builder --chown=gix:gix /app/target/release/ajr-router /usr/local/bin/ajr-router
+
+EXPOSE 50051
+EXPOSE 9001
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD timeout 2 bash -c '</dev/tcp/localhost/50051' || exit 1
+
+CMD ["ajr-router"]
+

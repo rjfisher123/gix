@@ -1,0 +1,122 @@
+# Multi-stage Rust builder for GIX services
+#
+# Stage 1: Build all binaries
+# Stage 2: Create minimal runtime images
+
+# =============================================================================
+# BUILDER STAGE
+# =============================================================================
+FROM rust:1.75-bookworm as builder
+
+# Install system dependencies for building
+RUN apt-get update && apt-get install -y \
+    protobuf-compiler \
+    llvm \
+    clang \
+    libclang-dev \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY services ./services
+COPY tools ./tools
+COPY sdk ./sdk
+COPY proto ./proto
+
+# Build all workspace members in release mode
+# This creates optimized binaries with LTO
+RUN cargo build --release --workspace
+
+# Verify binaries were created
+RUN ls -lh target/release/ && \
+    test -f target/release/ajr-router && \
+    test -f target/release/gcam-node && \
+    test -f target/release/gsee-runtime && \
+    echo "All binaries built successfully"
+
+# =============================================================================
+# RUNTIME BASE STAGE
+# =============================================================================
+FROM debian:bookworm-slim as runtime-base
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for running services
+RUN useradd -m -u 1000 gix && \
+    mkdir -p /data && \
+    chown -R gix:gix /data
+
+# Switch to non-root user
+USER gix
+WORKDIR /home/gix
+
+# =============================================================================
+# AJR ROUTER SERVICE
+# =============================================================================
+FROM runtime-base as router
+
+# Copy the router binary from builder
+COPY --from=builder --chown=gix:gix /app/target/release/ajr-router /usr/local/bin/ajr-router
+
+# Expose gRPC port
+EXPOSE 50051
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD timeout 2 bash -c '</dev/tcp/localhost/50051' || exit 1
+
+# Run the router service
+CMD ["ajr-router"]
+
+# =============================================================================
+# GCAM AUCTION SERVICE
+# =============================================================================
+FROM runtime-base as auction
+
+# Copy the auction binary from builder
+COPY --from=builder --chown=gix:gix /app/target/release/gcam-node /usr/local/bin/gcam-node
+
+# Create data directory for persistent storage
+RUN mkdir -p /data/gcam_db && chown -R gix:gix /data
+
+# Expose gRPC port
+EXPOSE 50052
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD timeout 2 bash -c '</dev/tcp/localhost/50052' || exit 1
+
+# Set data directory
+ENV GIX_DATA_DIR=/data
+
+# Run the auction service
+CMD ["gcam-node"]
+
+# =============================================================================
+# GSEE EXECUTION SERVICE
+# =============================================================================
+FROM runtime-base as execution
+
+# Copy the execution binary from builder
+COPY --from=builder --chown=gix:gix /app/target/release/gsee-runtime /usr/local/bin/gsee-runtime
+
+# Expose gRPC port
+EXPOSE 50053
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD timeout 2 bash -c '</dev/tcp/localhost/50053' || exit 1
+
+# Run the execution service
+CMD ["gsee-runtime"]
+

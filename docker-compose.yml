@@ -1,0 +1,179 @@
+# GIX LocalNet - Docker Compose Configuration
+#
+# This file defines the complete GIX network stack for local development
+# and testing. It includes all three core services with persistent storage
+# and health checks.
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # AJR Router Service
+  # Handles anonymized job routing through mixnet lanes
+  # =============================================================================
+  gix-router:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.router
+    container_name: gix-router
+    hostname: router
+    networks:
+      - gix-net
+    ports:
+      - "50051:50051"
+      - "9001:9001"  # Metrics endpoint
+    environment:
+      - RUST_LOG=ajr_router=info,tower_http=debug
+      - RUST_BACKTRACE=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "timeout", "2", "bash", "-c", "</dev/tcp/localhost/50051"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # =============================================================================
+  # GCAM Auction Service
+  # Handles job matching, pricing, and route selection with persistent storage
+  # =============================================================================
+  gix-auction:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.auction
+    container_name: gix-auction
+    hostname: auction
+    networks:
+      - gix-net
+    ports:
+      - "50052:50052"
+      - "9002:9002"  # Metrics endpoint
+    volumes:
+      - gcam-data:/data
+    environment:
+      - RUST_LOG=gcam_node=info,tower_http=debug
+      - RUST_BACKTRACE=1
+      - GIX_DATA_DIR=/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "timeout", "2", "bash", "-c", "</dev/tcp/localhost/50052"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      gix-router:
+        condition: service_healthy
+
+  # =============================================================================
+  # GSEE Execution Service
+  # Handles secure job execution with compliance checks
+  # =============================================================================
+  gix-enclave:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.enclave
+    container_name: gix-enclave
+    hostname: enclave
+    networks:
+      - gix-net
+    ports:
+      - "50053:50053"
+    environment:
+      - RUST_LOG=gsee_runtime=info,tower_http=debug
+      - RUST_BACKTRACE=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "timeout", "2", "bash", "-c", "</dev/tcp/localhost/50053"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      gix-auction:
+        condition: service_healthy
+
+  # =============================================================================
+  # Prometheus - Metrics Collection
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: gix-prometheus
+    hostname: prometheus
+    networks:
+      - gix-net
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      - gix-router
+      - gix-auction
+
+  # =============================================================================
+  # Grafana - Metrics Visualization
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: gix-grafana
+    hostname: grafana
+    networks:
+      - gix-net
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - prometheus
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  gix-net:
+    name: gix-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  gcam-data:
+    name: gix-gcam-data
+    driver: local
+  prometheus-data:
+    name: gix-prometheus-data
+    driver: local
+  grafana-data:
+    name: gix-grafana-data
+    driver: local
+

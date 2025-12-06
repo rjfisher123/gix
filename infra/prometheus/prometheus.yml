@@ -1,0 +1,37 @@
+# Prometheus Configuration for GIX Services
+#
+# This configuration scrapes metrics from all GIX services
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'gix-localnet'
+    environment: 'development'
+
+# Scrape configurations
+scrape_configs:
+  # AJR Router metrics
+  - job_name: 'gix-router'
+    static_configs:
+      - targets: ['gix-router:9001']
+        labels:
+          service: 'ajr-router'
+          component: 'routing'
+
+  # GCAM Auction metrics
+  - job_name: 'gix-auction'
+    static_configs:
+      - targets: ['gix-auction:9002']
+        labels:
+          service: 'gcam-node'
+          component: 'auction'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          component: 'monitoring'
+

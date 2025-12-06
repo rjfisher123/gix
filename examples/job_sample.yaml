@@ -1,0 +1,20 @@
+# Sample job specification for GIX
+#
+# This file demonstrates the structure of a job submission.
+# All fields must match the GXF schema.
+
+# Model identifier (can be any string describing the model)
+model: "llama-3.1-8b"
+
+# Precision level: BF16, FP8, E5M2, or INT8
+precision: "BF16"
+
+# KV cache sequence length (required)
+kv_cache_seq_len: 2048
+
+# Token count (optional, defaults to 128)
+token_count: 256
+
+# Batch size (optional, defaults to 1)
+batch_size: 1
+

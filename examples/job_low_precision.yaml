@@ -1,0 +1,7 @@
+# Low precision job example (for faster/cheaper execution)
+model: "llama-2-7b"
+precision: "INT8"
+kv_cache_seq_len: 1024
+token_count: 128
+batch_size: 1
+

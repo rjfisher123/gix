@@ -1,0 +1,25 @@
+[package]
+name = "gix-sim"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "gix-sim"
+path = "src/main.rs"
+
+[lib]
+name = "gix_sim"
+path = "src/lib.rs"
+
+[dependencies]
+gix-common = { path = "../../crates/gix-common" }
+gix-crypto = { path = "../../crates/gix-crypto" }
+gix-gxf = { path = "../../crates/gix-gxf" }
+gix-proto = { path = "../../crates/gix-proto" }
+tokio = { version = "1.0", features = ["full"] }
+tonic = "0.10"
+prost = "0.12"
+anyhow = "1.0"
+rand = "0.8"
+tracing = "0.1"
+serde_json = "1.0"

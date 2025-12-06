@@ -1,0 +1,14 @@
+[package]
+name = "gix-sdk"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+gix-common = { path = "../../crates/gix-common" }
+gix-crypto = { path = "../../crates/gix-crypto" }
+gix-gxf = { path = "../../crates/gix-gxf" }
+
+
+

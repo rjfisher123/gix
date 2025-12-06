@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+.env
+.DS_Store
+
+# Persistent database files
+/data
+/test_data

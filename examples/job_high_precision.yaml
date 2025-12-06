@@ -1,0 +1,7 @@
+# High precision job example
+model: "gpt-4-turbo"
+precision: "BF16"
+kv_cache_seq_len: 4096
+token_count: 512
+batch_size: 2
+

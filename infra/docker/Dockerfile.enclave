@@ -1,0 +1,51 @@
+# Dockerfile for GSEE Execution Service
+#
+# This builds only the execution runtime service
+
+FROM rust:1.75-bookworm as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    protobuf-compiler \
+    llvm \
+    clang \
+    libclang-dev \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY services/gsee-runtime ./services/gsee-runtime
+COPY proto ./proto
+
+# Build only the execution service
+RUN cargo build --release -p gsee-runtime
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 gix
+
+USER gix
+WORKDIR /home/gix
+
+# Copy binary
+COPY --from=builder --chown=gix:gix /app/target/release/gsee-runtime /usr/local/bin/gsee-runtime
+
+EXPOSE 50053
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD timeout 2 bash -c '</dev/tcp/localhost/50053' || exit 1
+
+CMD ["gsee-runtime"]
+

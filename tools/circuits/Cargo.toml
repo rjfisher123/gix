@@ -1,0 +1,15 @@
+[package]
+name = "gix-circuits"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# TODO: Add ZK proof system dependencies
+# - halo2
+# - plonky2
+# - nova
+
+
+

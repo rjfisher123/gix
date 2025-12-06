@@ -1,0 +1,31 @@
+[package]
+name = "gsee-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "gsee_runtime"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gsee-runtime"
+path = "src/main.rs"
+
+[dependencies]
+gix-common = { path = "../../crates/gix-common" }
+gix-crypto = { path = "../../crates/gix-crypto" }
+gix-gxf = { path = "../../crates/gix-gxf" }
+gix-proto = { path = "../../crates/gix-proto" }
+tokio = { version = "1.0", features = ["full"] }
+tonic = "0.10"
+prost = "0.12"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+thiserror = "1.0"
+
+
+
