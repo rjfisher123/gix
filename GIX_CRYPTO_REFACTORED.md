@@ -537,3 +537,4 @@ $ cargo clippy -p gix-crypto
 
 **The GIX cryptography layer is now quantum-resistant!** 🔐🚀
 
+

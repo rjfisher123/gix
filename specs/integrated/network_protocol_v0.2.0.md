@@ -208,3 +208,4 @@ All services follow a consistent error pattern:
 - **Package:** gix.v1
 - **Breaking Changes:** Any changes to message structure or RPC signatures require version increment
 
+

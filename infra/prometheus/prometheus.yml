@@ -35,3 +35,4 @@ scrape_configs:
           service: 'prometheus'
           component: 'monitoring'
 
+

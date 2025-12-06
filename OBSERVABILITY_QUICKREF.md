@@ -326,3 +326,4 @@ sum(rate(gix_packets_routed_total[5m])) by (lane)
 
 **Last Updated:** December 6, 2025
 
+

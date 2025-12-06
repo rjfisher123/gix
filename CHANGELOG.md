@@ -51,6 +51,13 @@ This release transforms GIX from a monolithic simulation into a distributed micr
 - **Grafana Dashboards**: Web-based visualization and monitoring
 - **Deployment Scripts**: Automated localnet deployment with connectivity testing
 - **Security**: Non-root containers, isolated networks, read-only potential
+- **Cloud Deployment (Phase 6)**: Production-ready Terraform IaC for AWS
+  - Automated EC2 provisioning with Ubuntu 22.04 LTS
+  - Security groups with proper firewall rules
+  - Elastic IP for stable addressing
+  - User data script for zero-touch bootstrap
+  - Multi-node scaling support via Terraform workspaces
+  - Cost-effective deployment (~$35-50/month per node)
 
 #### Observability
 - **Router Metrics**: Packets routed, active jobs per lane

@@ -170,6 +170,82 @@ sum(rate(gix_packets_routed_total[5m])) by (lane)
 
 See [OBSERVABILITY_QUICKREF.md](OBSERVABILITY_QUICKREF.md) for comprehensive monitoring guide.
 
+## Cloud Deployment
+
+Deploy GIX to AWS (or other cloud providers) using Terraform:
+
+### Prerequisites
+
+1. **Install Terraform:**
+   ```bash
+   brew install terraform  # macOS
+   ```
+
+2. **Configure AWS credentials:**
+   ```bash
+   aws configure
+   ```
+
+3. **Create SSH key pair:**
+   ```bash
+   aws ec2 create-key-pair \
+     --key-name gix-node-key \
+     --query 'KeyMaterial' \
+     --output text > ~/.ssh/gix-node-key.pem
+   chmod 400 ~/.ssh/gix-node-key.pem
+   ```
+
+### Deploy to AWS
+
+```bash
+cd infra/terraform
+
+# Initialize Terraform
+terraform init
+
+# Configure variables (copy and edit)
+cp terraform.tfvars.example terraform.tfvars
+nano terraform.tfvars
+
+# Preview deployment
+terraform plan
+
+# Deploy (takes 5-10 minutes)
+terraform apply
+```
+
+After deployment, Terraform outputs the public IP and service endpoints:
+
+```
+Outputs:
+
+public_ip = "54.123.456.789"
+router_endpoint = "54.123.456.789:50051"
+auction_endpoint = "54.123.456.789:50052"
+execution_endpoint = "54.123.456.789:50053"
+grafana_url = "http://54.123.456.789:3000"
+```
+
+### Use Cloud Node with CLI
+
+```bash
+# Submit jobs to your cloud node
+gix-cli submit \
+  --router-url http://54.123.456.789:50051 \
+  examples/job_sample.yaml
+
+# Check status
+gix-cli status --router-url http://54.123.456.789:50051
+```
+
+### Cleanup
+
+```bash
+terraform destroy
+```
+
+**See [infra/terraform/README.md](infra/terraform/README.md) for complete cloud deployment guide.**
+
 ## Specifications
 
 All implementation is driven by specifications in `specs/`:

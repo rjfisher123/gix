@@ -532,3 +532,4 @@ docker exec gix-auction bash -c 'echo > /dev/tcp/localhost/50052'
 
 **GIX is fully containerized!** 🐳✅
 
+

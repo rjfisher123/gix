@@ -12,3 +12,4 @@ These prompts can be referenced when asking Cursor to perform specific tasks, en
 
 
 
+

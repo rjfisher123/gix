@@ -527,3 +527,4 @@ curl -s http://localhost:9002/metrics | grep gix_
 
 **GIX is fully observable!** 📊✅
 
+
