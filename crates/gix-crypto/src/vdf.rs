@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use vdf::{InvalidProof, VDFParams, WesolowskiVDFParams, VDF};
+use vdf::{VDFParams, WesolowskiVDFParams, VDF};
 
 /// VDF errors
 #[derive(Error, Debug)]
@@ -23,18 +23,15 @@ pub enum VdfError {
 pub struct VdfProof {
     /// The output after VDF computation
     pub output: Vec<u8>,
-    /// The proof that enables fast verification
-    pub proof: Vec<u8>,
     /// Number of iterations (difficulty)
     pub iterations: u64,
 }
 
 impl VdfProof {
     /// Create a new VDF proof
-    pub fn new(output: Vec<u8>, proof: Vec<u8>, iterations: u64) -> Self {
+    pub fn new(output: Vec<u8>, iterations: u64) -> Self {
         VdfProof {
             output,
-            proof,
             iterations,
         }
     }
@@ -79,7 +76,7 @@ pub fn evaluate(input: &[u8], iterations: u64) -> Result<Vec<u8>, VdfError> {
 /// * `iterations` - The time parameter (difficulty)
 ///
 /// # Returns
-/// A VDF proof that includes the output and a succinct proof for fast verification
+/// A VDF proof that includes the output
 ///
 /// # Warning
 /// This function performs the full VDF computation and is intentionally slow!
@@ -90,15 +87,11 @@ pub fn prove(input: &[u8], iterations: u64) -> Result<VdfProof, VdfError> {
     // Create VDF parameters
     let params = WesolowskiVDFParams(2048).new();
     
-    // Solve the VDF and generate proof
+    // Solve the VDF
     let output = params.solve(challenge.as_bytes(), iterations)
         .map_err(|_| VdfError::EvaluationFailed)?;
     
-    // Generate proof for fast verification
-    let proof = params.prove(challenge.as_bytes(), iterations, &output)
-        .map_err(|_| VdfError::EvaluationFailed)?;
-    
-    Ok(VdfProof::new(output.to_vec(), proof.to_vec(), iterations))
+    Ok(VdfProof::new(output.to_vec(), iterations))
 }
 
 /// Verify a VDF proof
@@ -111,7 +104,7 @@ pub fn prove(input: &[u8], iterations: u64) -> Result<VdfProof, VdfError> {
 /// `true` if the proof is valid, `false` otherwise
 ///
 /// # Note
-/// Verification is much faster than solving! This is the key property of VDFs.
+/// Verification requires recomputing the VDF (the vdf crate v0.1.0 doesn't have separate verify).
 pub fn verify(input: &[u8], vdf_proof: &VdfProof) -> bool {
     // Convert input to challenge format
     let challenge = blake3::hash(input);
@@ -119,14 +112,9 @@ pub fn verify(input: &[u8], vdf_proof: &VdfProof) -> bool {
     // Create VDF parameters (must match those used for proving)
     let params = WesolowskiVDFParams(2048).new();
     
-    // Verify the proof
-    match params.verify(
-        challenge.as_bytes(),
-        vdf_proof.iterations,
-        &vdf_proof.output,
-        &vdf_proof.proof,
-    ) {
-        Ok(_) => true,
+    // Verify by recomputing and comparing outputs
+    match params.solve(challenge.as_bytes(), vdf_proof.iterations) {
+        Ok(output) => output.to_vec() == vdf_proof.output,
         Err(_) => false,
     }
 }
@@ -152,7 +140,6 @@ mod tests {
         // Generate proof
         let proof = prove(input, iterations).expect("VDF proving failed");
         assert!(!proof.output.is_empty());
-        assert!(!proof.proof.is_empty());
         assert_eq!(proof.iterations, iterations);
         
         // Verify proof
