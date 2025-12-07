@@ -5,7 +5,7 @@
 use anyhow::Result;
 use gix_common::{GixError, JobId, LaneId, SlpId};
 use gix_gxf::{GxfEnvelope, GxfJob, PrecisionLevel};
-use metrics::{counter, gauge};
+use metrics::{counter, gauge, increment_counter, increment_gauge};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -362,7 +362,7 @@ impl AuctionEngine {
         
         increment_counter!("gix_auctions_total");
         increment_counter!("gix_auction_matches_total", "slp" => slp_id_str.clone());
-        gauge!("gix_clearing_price", slp_id_str.clone() => price as f64);
+        gauge!("gix_clearing_price", price as f64, "slp" => slp_id_str.clone());
         increment_gauge!("gix_auction_volume_total", price as f64);
         increment_counter!("gix_matches_by_precision", "precision" => precision_str);
 

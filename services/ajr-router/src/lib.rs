@@ -5,7 +5,7 @@
 use anyhow::Result;
 use gix_common::{GixError, LaneId};
 use gix_gxf::{GxfEnvelope, GxfJob};
-use metrics::{counter, gauge};
+use metrics::{counter, gauge, increment_counter};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
