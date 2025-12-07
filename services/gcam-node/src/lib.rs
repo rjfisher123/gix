@@ -360,11 +360,11 @@ impl AuctionEngine {
         let slp_id_str = provider.slp_id.0.clone();
         let precision_str = format!("{:?}", job.precision);
         
-        counter!("gix_auctions_total").increment(1);
-        counter!("gix_auction_matches_total", "slp" => slp_id_str.clone()).increment(1);
-        gauge!("gix_clearing_price", "slp" => slp_id_str.clone()).set(price as f64);
-        gauge!("gix_auction_volume_total").increment(price as f64);
-        counter!("gix_matches_by_precision", "precision" => precision_str).increment(1);
+        increment_counter!("gix_auctions_total");
+        increment_counter!("gix_auction_matches_total", "slp" => slp_id_str.clone());
+        gauge!("gix_clearing_price", slp_id_str.clone() => price as f64);
+        increment_gauge!("gix_auction_volume_total", price as f64);
+        increment_counter!("gix_matches_by_precision", "precision" => precision_str);
 
         // Update stats
         {
@@ -376,9 +376,9 @@ impl AuctionEngine {
             *stats.matches_by_lane.entry(route.lane_id.clone()).or_insert(0) += 1;
             
             // Update gauge metrics for stats
-            gauge!("gix_total_auctions").set(stats.total_auctions as f64);
-            gauge!("gix_total_matches").set(stats.total_matches as f64);
-            gauge!("gix_total_volume").set(stats.total_volume as f64);
+            gauge!("gix_total_auctions", stats.total_auctions as f64);
+            gauge!("gix_total_matches", stats.total_matches as f64);
+            gauge!("gix_total_volume", stats.total_volume as f64);
         }
 
         // Update provider utilization
@@ -388,7 +388,7 @@ impl AuctionEngine {
                 p.utilization += 1;
                 
                 // Update utilization gauge
-                gauge!("gix_provider_utilization", "slp" => slp_id_str).set(p.utilization as f64);
+                gauge!("gix_provider_utilization", p.utilization as f64, "slp" => slp_id_str);
             }
         }
 

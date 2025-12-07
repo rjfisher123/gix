@@ -106,7 +106,7 @@ impl RouterState {
     ) -> Result<(), GixError> {
         // Record metrics
         let lane_id_str = format!("{}", lane_id.0);
-        counter!("gix_packets_routed_total", "lane" => lane_id_str.clone()).increment(1);
+        increment_counter!("gix_packets_routed_total", "lane" => lane_id_str.clone());
         
         {
             let mut stats = self.stats.write().await;
@@ -118,7 +118,7 @@ impl RouterState {
             *total += 1;
             
             // Update total routed gauge
-            gauge!("gix_router_total_routed").set(*total as f64);
+            gauge!("gix_router_total_routed", *total as f64);
         }
 
         if let Some(lane) = self.lanes.iter().find(|l| l.id == lane_id) {
@@ -126,7 +126,7 @@ impl RouterState {
             *active += 1;
             
             // Update active jobs gauge for this lane
-            gauge!("gix_router_active_jobs", "lane" => lane_id_str).set(*active as f64);
+            gauge!("gix_router_active_jobs", *active as f64, "lane" => lane_id_str);
         }
 
         Ok(())
