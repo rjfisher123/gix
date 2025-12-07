@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-const GSEE_SERVER_ADDR: &str = "127.0.0.1:50053";
+const GSEE_SERVER_ADDR: &str = "0.0.0.0:50053";
 
 /// Runtime service implementation
 struct ExecutionServiceImpl {

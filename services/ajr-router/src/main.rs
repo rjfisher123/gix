@@ -14,7 +14,7 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-const AJR_SERVER_ADDR: &str = "127.0.0.1:50051";
+const AJR_SERVER_ADDR: &str = "0.0.0.0:50051";
 const METRICS_ADDR: &str = "0.0.0.0:9001";
 
 /// Router service implementation

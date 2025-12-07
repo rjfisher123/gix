@@ -15,7 +15,7 @@ use tokio::signal;
 use tonic::{Request, Response, Status};
 use tracing::info;
 
-const GCAM_SERVER_ADDR: &str = "127.0.0.1:50052";
+const GCAM_SERVER_ADDR: &str = "0.0.0.0:50052";
 const METRICS_ADDR: &str = "0.0.0.0:9002";
 const DB_PATH: &str = "./data/gcam_db";
 
