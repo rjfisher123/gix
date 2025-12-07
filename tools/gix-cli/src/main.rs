@@ -12,6 +12,7 @@ use gix_crypto::pqc::dilithium;
 use gix_gxf::{GxfEnvelope, GxfJob, GxfMetadata, PrecisionLevel};
 use gix_proto::v1::{GetAuctionStatsRequest, RunAuctionRequest};
 use gix_proto::AuctionServiceClient;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -151,30 +152,18 @@ async fn handle_submit(
     let keypair = wallet::load_wallet(&wallet_path)?;
     
     // Create GXF job
-    let job_id = JobId::new();
+    let job_id = JobId(rand::random());
     let precision = parse_precision(&job_spec.precision)?;
     
     let job = GxfJob::new(job_id, precision, job_spec.kv_cache_seq_len);
     
-    // Create envelope
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
+    // Create envelope from job
+    println!("{}", "Creating envelope...".cyan());
+    let envelope = GxfEnvelope::from_job(job.clone(), priority)?;
     
-    let meta = GxfMetadata {
-        priority,
-        timestamp: now,
-        ttl: 300, // 5 minutes
-    };
-    
-    let mut envelope = GxfEnvelope::new(meta, job.clone());
-    
-    // Sign envelope
-    println!("{}", "Signing envelope...".cyan());
-    let payload_bytes = serde_json::to_vec(&job)?;
-    let signature = dilithium::sign_detached(&payload_bytes, &keypair.secret)?;
-    envelope.signature = Some(signature.bytes);
+    // Sign the payload
+    println!("{}", "Signing payload...".cyan());
+    let signature = dilithium::sign_detached(&envelope.payload, &keypair.secret)?;
     
     // Connect to GCAM node
     let node_addr = node_addr.unwrap_or_else(|| "http://127.0.0.1:50052".to_string());
